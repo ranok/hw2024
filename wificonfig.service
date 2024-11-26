@@ -1,0 +1,9 @@
+[Unit]
+Description=Setup wifi
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c "cd /opt/cg/ && source venv/bin/activate && python wifi_config.py"
+
+[Install]
+WantedBy=mreboot.target
