@@ -5,6 +5,8 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
+ENV_FILE = '/opt/cg/.env'
+
 def wifi_connected() -> bool:
     return any(w.in_use for w in nmcli.device.wifi())
 
@@ -63,6 +65,11 @@ def handle_wifi_config():
     password = request.form['password']
 
     # TODO Save the API information
+    console_hash = request.form['consolehash']
+    console_key = request.form['consolekey']
+    with open(ENV_FILE, 'w') as fp:
+        efc = f"CONSOLE_HASH={console_hash}\nAPI_KEY={console_key}\n"
+        fp.write(efc)
 
     try:
         wifi_connect(ssid, password)

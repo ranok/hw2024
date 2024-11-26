@@ -3,12 +3,21 @@
 import spidev as SPI
 import logging
 import ST7789
+from dotenv import load_dotenv
 import time
 import threading
 import requests
+import os
 from PIL import Image, ImageSequence, ImageDraw
+import pickle
+import canarystate
+from canarystate import save_state, canarygotchi_state, console_state
 
-console_hash = "https://CONSOLEHASH.canary.tools"
+load_dotenv()
+
+console_hash = os.environ['CONSOLE_HASH']
+auth_token = os.environ['API_KEY']
+
 payload = {
   'auth_token': 'abcdefg',
   'limit':'10'
@@ -23,13 +32,8 @@ disp.Init()
 disp.clear()
 disp.bl_DutyCycle(50)
 
-# Global variables
-canarygotchi_state = {
-    "happiness": 100,
-    "xp": 0,
-    "alerts": []
-}
 
+# Global variables
 bright_green = (0, 255, 0)
 
 current_screen = "home"  # Default screen is home
@@ -44,6 +48,8 @@ current_animation = base_animation
 class ScreenManager:
     def __init__(self, display):
         self.display = display
+        self.font_size = 20
+        self.text_y_space = 30
         self.screens = {
             "home": self.home_screen,
             "menu": self.menu_screen,
@@ -96,18 +102,18 @@ class ScreenManager:
         y = 10
         for i, item in enumerate(menu_items):
             if i == selected_menu_index:
-                draw.text((10, y), item, fill=bright_green)  # Highlight selected item
+                draw.text((10, y), item, fill=bright_green, font_size=self.font_size)  # Highlight selected item
             else:
-                draw.text((10, y), item, fill="WHITE")
-            y += 20
+                draw.text((10, y), item, fill="WHITE", font_size=self.font_size)
+            y += self.text_y_space
         disp.ShowImage(image)
 
     def stats_screen(self):
         # Display the stats
         image = Image.new("RGB", (disp.width, disp.height), "BLACK")
         draw = ImageDraw.Draw(image)
-        draw.text((10, 10), f"Happiness: {canarygotchi_state['happiness']}", fill="WHITE")
-        draw.text((10, 30), f"XP: {canarygotchi_state['xp']}", fill="WHITE")
+        draw.text((10, 10), f"Happiness: {canarygotchi_state['happiness']}", fill="WHITE", font_size=self.font_size)
+        draw.text((10, 10+self.text_y_space), f"XP: {canarygotchi_state['xp']}", fill="WHITE", font_size=self.font_size)
         disp.ShowImage(image)
 
     def alerts_screen(self):
@@ -118,10 +124,10 @@ class ScreenManager:
         y = 10
         for i, alert in enumerate(canarygotchi_state['alerts']):
             if i == selected_menu_index:
-                draw.text((10, y), f"{i+1}. {alert['title']}", fill=bright_green)
+                draw.text((10, y), f"{i+1}. {alert['title']}", fill=bright_green, font_size=self.font_size)
             else:
-                draw.text((10, y), f"{i+1}. {alert['title']}", fill="WHITE")
-            y += 20
+                draw.text((10, y), f"{i+1}. {alert['title']}", fill="WHITE", font_size=self.font_size)
+            y += self.text_y_space
         disp.ShowImage(image)
 
 # Button Handling
@@ -203,6 +209,10 @@ def poll_api():
     while True:
         try:
             print("dummy poll")
+            if not 'CONSOLEHASH' in console_hash:
+                cs_new = canarystate.get_console_state(console_hash, api_key)
+                #if console_state['num_deployed_canarytokens'] != cs_new['num_deployed_canarytokens']:
+
             #response = requests.get(f"{console_hash}/api/v1/ping", params=payload)
             #if response.status_code == 200:
                 # Trigger event-based animations if needed
@@ -225,7 +235,7 @@ def main():
     # 2. if 0 or incident == last incident ID STOP
     # 3. Else: get incidents - paginated - until we have the same state localy as we do on the console
     data = {'incidents': []}
-    if not 'CONSOLEHASH' in console_hash:
+    if not "CONSOLEHASH" in console_hash:
         r = requests.get(f"{console_hash}/api/v1/incidents/unacknowledged", params=payload)
         data = r.json()
     new_alerts = []
