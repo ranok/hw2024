@@ -31,7 +31,9 @@ canarygotchi_state = {
 
 console_state = {
     'num_unused_licenses': 0,
-    'num_deployed_tokens': 0
+    'num_deployed_tokens': 0,
+    'live_devices': 0,
+    'dead_devices': 0
 }
 
 sf = Path(STATE_FILE)
@@ -65,6 +67,14 @@ def get_console_state() -> dict:
         new_state['num_deployed_canarytokens'] = len(console.tokens.all())
     except canarytools.CanaryTokenError:
         logger.exception("Failed to get canarytokens from console")
+
+    try:
+        new_state.update({
+            "live_devices": len(console.devices.live()),
+            "dead_devices": len(console.devices.dead())
+        })
+    except Exception:
+        logger.exception("Failed to live/dead device counts")
 
     return new_state
 

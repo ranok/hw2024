@@ -13,6 +13,7 @@ import pickle
 import canarystate
 from canarystate import save_state, canarygotchi_state, console_state, console
 import canarytools
+from copy import deepcopy
 
 load_dotenv()
 
@@ -199,12 +200,25 @@ class ButtonHandler:
 
 # Background API Polling
 def poll_api():
+    global console_state
     while True:
         try:
             logging.info("Polling console...")
             cs_new = canarystate.get_console_state()
 
-            #if console_state['num_deployed_canarytokens'] != cs_new['num_deployed_canarytokens']:
+            new_things = lambda k: cs_new[k] > console_state[k]
+
+            if cs_new['num_deployed_tokens'] > console_state['num_deployed_tokens']:
+                canarygotchi_state['happiness'] += 1
+                canarygotchi_state['xp'] += 5
+
+            if new_things('live_devices'):
+                canarygotchi_state['happiness'] += 1
+                canarygotchi_state['xp'] += 5
+
+            if new_things('dead_devices'):
+                canarygotchi_state['happiness'] -= 1
+
 
             #response = requests.get(f"{console_hash}/api/v1/ping", params=payload)
             #if response.status_code == 200:
@@ -216,6 +230,8 @@ def poll_api():
                 #    if current_screen == "home":
                         # Restart the animation thread to play the new animation
                 #        screen_manager.show_screen(current_screen)
+
+            console_state = deepcopy(cs_new)
         except canarytools.ConsoleError:
             logging.exception(f"API request failed")
 
