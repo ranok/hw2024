@@ -9,4 +9,4 @@ cd /opt/cg && git clone https://github.com/ranok/hw2024.git .
 cd /opt/cg && sudo ln -s /opt/cg/wificonfig.service /etc/systemd/system/wificonfig.service
 sudo systemctl enable --now wificonfig.service
 cd /opt/cg && python3 -m venv venv
-cd /opt/cg && source venv/bin/activate && pip install pillow numpy lgpio spidev gpiozero flask python-dotenv nmcli
+cd /opt/cg && source venv/bin/activate && pip install pillow numpy lgpio spidev gpiozero flask python-dotenv nmcli canarytools
