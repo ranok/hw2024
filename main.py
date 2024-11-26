@@ -116,12 +116,15 @@ class ScreenManager:
         image = Image.new("RGB", (disp.width, disp.height), "BLACK")
         draw = ImageDraw.Draw(image)
         y = 10
-        for i, alert in enumerate(canarygotchi_state['alerts']):
-            if i == selected_menu_index:
-                draw.text((10, y), f"{i+1}. {alert['title']}", fill=bright_green, font_size=self.font_size)
-            else:
-                draw.text((10, y), f"{i+1}. {alert['title']}", fill="WHITE", font_size=self.font_size)
-            y += self.text_y_space
+        if len(canarygotchi_state['alerts']) > 0:
+            for i, alert in enumerate(canarygotchi_state['alerts']):
+                if i == selected_menu_index:
+                    draw.text((10, y), f"{i+1}. {alert['title']}", fill=bright_green, font_size=self.font_size)
+                else:
+                    draw.text((10, y), f"{i+1}. {alert['title']}", fill="WHITE", font_size=self.font_size)
+                y += self.text_y_space
+        else:
+            draw.text((10, y), "No alerts", fill="WHITE", font_size=self.font_size)
         disp.ShowImage(image)
 
 # Button Handling
@@ -248,7 +251,6 @@ def main():
     # 1. Get unacknowledged incidents, limit 1
     # 2. if 0 or incident == last incident ID STOP
     # 3. Else: get incidents - paginated - until we have the same state localy as we do on the console
-    data = {'incidents': []}
     new_alerts = []
 
     for incident in console.incidents.unacknowledged():
