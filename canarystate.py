@@ -5,9 +5,14 @@ import pickle
 from pathlib import Path
 import requests
 from dotenv import load_dotenv
+import logging
 import canarytools
+from copy import deepcopy
+
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 console_hash = os.environ['CONSOLE_HASH']
 auth_token = os.environ['API_KEY']
@@ -50,11 +55,18 @@ def get_console_state() -> dict:
     if res.status_code != 200:
         print("Error fetching console state! " + res.text)
         return {}
-    state = {}
-    state['num_unused_licenses'] = res.json().get('canaryvm_remaining_licenses')
+    new_state = deepcopy(console_state)
+    new_state['num_unused_licenses'] = res.json().get('canaryvm_remaining_licenses', 0)
     res = requests.get(url + '/api/v1/canarytokens/fetch', data={'auth_token': auth_token})
     if res.status_code != 200:
         print("Error fetching console state! " + res.text)
         return {}
-    state['num_deployed_canarytokens'] = len(res.json().get('tokens'))
+    try:
+        new_state['num_deployed_canarytokens'] = len(console.tokens.all())
+    except canarytools.CanaryTokenError:
+        logger.exception("Failed to get canarytokens from console")
+
+    return new_state
+
+
 

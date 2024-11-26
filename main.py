@@ -216,8 +216,9 @@ def poll_api():
                 #    if current_screen == "home":
                         # Restart the animation thread to play the new animation
                 #        screen_manager.show_screen(current_screen)
-        except canarytools.RequestException:
+        except canarytools.ConsoleError:
             logging.exception(f"API request failed")
+
         time.sleep(polling_interval)
 
 # Main Function
