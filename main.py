@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import spidev as SPI
-import logging
+import logging, qrcode
 import ST7789
 from dotenv import load_dotenv
 import time
@@ -232,10 +232,14 @@ def poll_api():
                 #        screen_manager.show_screen(current_screen)
 
             console_state = deepcopy(cs_new)
+            canarystate.save_state(canarygotchi_state, console_state)
         except canarytools.ConsoleError:
             logging.exception(f"API request failed")
 
         time.sleep(polling_interval)
+
+def generate_qrcode(url : str) -> Image:
+    return qrcode.make(url)
 
 # Main Function
 def main():

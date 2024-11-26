@@ -64,7 +64,7 @@ def get_console_state() -> dict:
         print("Error fetching console state! " + res.text)
         return {}
     try:
-        new_state['num_deployed_canarytokens'] = len(console.tokens.all())
+        new_state['num_deployed_tokens'] = len(console.tokens.all())
     except canarytools.CanaryTokenError:
         logger.exception("Failed to get canarytokens from console")
 
