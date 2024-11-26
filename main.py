@@ -11,17 +11,10 @@ import os
 from PIL import Image, ImageSequence, ImageDraw
 import pickle
 import canarystate
-from canarystate import save_state, canarygotchi_state, console_state
+from canarystate import save_state, canarygotchi_state, console_state, console
+import canarytools
 
 load_dotenv()
-
-console_hash = os.environ['CONSOLE_HASH']
-auth_token = os.environ['API_KEY']
-
-payload = {
-  'auth_token': 'abcdefg',
-  'limit':'10'
-}
 
 # Logging configuration
 logging.basicConfig(level=logging.DEBUG)
@@ -208,10 +201,10 @@ class ButtonHandler:
 def poll_api():
     while True:
         try:
-            print("dummy poll")
-            if not 'CONSOLEHASH' in console_hash:
-                cs_new = canarystate.get_console_state(console_hash, api_key)
-                #if console_state['num_deployed_canarytokens'] != cs_new['num_deployed_canarytokens']:
+            logging.info("Polling console...")
+            cs_new = canarystate.get_console_state()
+
+            #if console_state['num_deployed_canarytokens'] != cs_new['num_deployed_canarytokens']:
 
             #response = requests.get(f"{console_hash}/api/v1/ping", params=payload)
             #if response.status_code == 200:
@@ -223,8 +216,8 @@ def poll_api():
                 #    if current_screen == "home":
                         # Restart the animation thread to play the new animation
                 #        screen_manager.show_screen(current_screen)
-        except requests.RequestException as e:
-            logging.error(f"API request failed: {e}")
+        except canarytools.RequestException:
+            logging.exception(f"API request failed")
         time.sleep(polling_interval)
 
 # Main Function
@@ -235,24 +228,21 @@ def main():
     # 2. if 0 or incident == last incident ID STOP
     # 3. Else: get incidents - paginated - until we have the same state localy as we do on the console
     data = {'incidents': []}
-    if not "CONSOLEHASH" in console_hash:
-        r = requests.get(f"{console_hash}/api/v1/incidents/unacknowledged", params=payload)
-        data = r.json()
     new_alerts = []
-    for incident in data["incidents"]:
+
+    for incident in console.incidents.unacknowledged():
         # Extract necessary fields
-        incident_summary = incident["summary"]
-        incident_name = incident["description"]["name"]
-        incident_memo = incident["description"].get("memo", "No memo available")  # Default if "memo" key doesn't exist
-        incident_id = incident["id"]
-        
+        incident_summary = incident.summary
+        incident_description = incident.description if incident.description != "" else "No memo available"  # Default if "memo" key doesn't exist
+        incident_id = incident.id
+
         # Determine the title based on the incident_name
         # Super limited space on the screen, so we need to shorten stuff
-        if incident_name == "N/A": # incident from canarytoken
-            incident_title = f"Token: {incident_memo[:20]}"
+        if incident_description == "N/A": # incident from canarytoken
+            incident_title = f"Token: {incident_description[:20]}"
         else: #incident from Canary
-            incident_title = f"{incident_name}: {incident_summary[:20]}"
-        
+            incident_title = f"{incident_description}: {incident_summary[:20]}"
+
         # Create the incident dictionary
         new_alerts.append({
             "title": incident_title,
@@ -260,7 +250,7 @@ def main():
         })
     global canarygotchi_state
     canarygotchi_state['alerts'] = new_alerts
-    
+
 
     global screen_manager
     screen_manager = ScreenManager(disp)

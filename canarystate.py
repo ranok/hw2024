@@ -1,8 +1,18 @@
 #!/usr/bin/env python3
 
+import os
 import pickle
 from pathlib import Path
 import requests
+from dotenv import load_dotenv
+import canarytools
+
+load_dotenv()
+
+console_hash = os.environ['CONSOLE_HASH']
+auth_token = os.environ['API_KEY']
+
+console = canarytools.Console(console_hash, auth_token)
 
 STATE_FILE = 'cgstate.dat'
 
@@ -34,14 +44,15 @@ def save_state(cgs = canarygotchi_state, cs = console_state):
     with open(STATE_FILE, 'wb') as fp:
         pickle.dump(state, fp)
 
-def get_console_state(ch : str, api_key : str) -> dict:
-    res = requests.get(ch + '/api/v1/license/detailed/info', headers={'auth_token': api_key})
+def get_console_state() -> dict:
+    url = f"https://{console_hash}.canary.tools"
+    res = requests.get(url + '/api/v1/license/detailed/info', data={'auth_token': auth_token})
     if res.status_code != 200:
         print("Error fetching console state! " + res.text)
         return {}
     state = {}
     state['num_unused_licenses'] = res.json().get('canaryvm_remaining_licenses')
-        res = requests.get(ch + '/api/v1/canarytokens/fetch', headers={'auth_token': api_key})
+    res = requests.get(url + '/api/v1/canarytokens/fetch', data={'auth_token': auth_token})
     if res.status_code != 200:
         print("Error fetching console state! " + res.text)
         return {}
