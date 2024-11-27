@@ -222,6 +222,8 @@ def poll_api():
             if new_things('dead_devices'):
                 canarygotchi_state['happiness'] -= 1
 
+            if len(cs_new['unacked_incidents']) > len(console_state['unacked_incidents']):
+                logging.info("New unack'd incidents discovered")
 
             #response = requests.get(f"{console_hash}/api/v1/ping", params=payload)
             #if response.status_code == 200:

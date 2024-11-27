@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 import logging
 import canarytools
 from copy import deepcopy
+from dataclasses import dataclass
+from datetime import datetime
 
 
 load_dotenv()
@@ -21,6 +23,8 @@ console = canarytools.Console(console_hash, auth_token)
 
 STATE_FILE = 'cgstate.dat'
 
+
+
 canarygotchi_state = {
     "happiness": 100,
     "xp": 0,
@@ -33,15 +37,18 @@ console_state = {
     'num_unused_licenses': 0,
     'num_deployed_tokens': 0,
     'live_devices': 0,
-    'dead_devices': 0
+    'dead_devices': 0,
+    'bare_devices': 0, # no services enabled
+    'unacked_incidents': []
 }
 
 sf = Path(STATE_FILE)
 if sf.is_file():
     with open(STATE_FILE, 'rb') as fp:
         state = pickle.load(fp)
-        canarygotchi_state = state['cgs']
-        console_state = state['cs']
+        # OR the dicts below so we update structure on save if we ever change them.
+        canarygotchi_state = canarygotchi_state | state['cgs']
+        console_state = console_state | state['cs']
 
 def save_state(cgs = canarygotchi_state, cs = console_state):
     state = {
@@ -50,6 +57,19 @@ def save_state(cgs = canarygotchi_state, cs = console_state):
     }
     with open(STATE_FILE, 'wb') as fp:
         pickle.dump(state, fp)
+
+def capi(uri):
+    try:
+        res = requests.get(f"https://{console_hash}.canary.tools/api/v1/{uri}', data={'auth_token': auth_token}")
+        if not res.ok:
+            logger.error(f"Failed call api: {res.reason}: {res.content}")
+            return None
+        return res.json()
+    except:
+        logger.exception("Failed to call console API")
+        return None
+
+
 
 def get_console_state() -> dict:
     url = f"https://{console_hash}.canary.tools"
@@ -69,12 +89,27 @@ def get_console_state() -> dict:
         logger.exception("Failed to get canarytokens from console")
 
     try:
+        all_devices = console.devices.all()
         new_state.update({
-            "live_devices": len(console.devices.live()),
-            "dead_devices": len(console.devices.dead())
+            "live_devices": len([d for d in all_devices if d.live]),
+            "dead_devices": len([d for d in all_devices if not d.live]),
+            "bare_devices": len([d for d in all_devices if d.service_count == 0])
         })
     except Exception:
         logger.exception("Failed to live/dead device counts")
+
+    if not new_state['unacked_incidents']:
+        unacknowledged = console.incidents.unacknowledged()
+        new_state['unacked_incidents'] = unacknowledged
+    else:
+        # We have some already cached, just get newer ones:
+        latest = sorted(console_state['unacked_incidents'], key=lambda d: d.created_std)[-1]
+        new_unacked = console.incidents.unacknowledged(newer_than=latest.created_std.strftime("%Y-%m-%d-%H:%M:%S"))
+        new_state['unacked_incidents'].extend([na for na in new_unacked if not na.id in [i.id for i in console_state['unacked_incidents']]])
+        logger.info(f"Latest incident: {latest.created_std} All: {[i.created_std for i in console_state['unacked_incidents']]}")
+
+    for u in new_state['unacked_incidents']:
+        logger.info(f"Unacknowledged: {str(u.created_std)}: {type(u.created_std)}")
 
     return new_state
 
