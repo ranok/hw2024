@@ -85,12 +85,12 @@ class ScreenManager:
             gif = Image.open(current_animation)
             animation_running = True
             try:
+                frames = [frame.resize((240, 240)).rotate(0) for frame in ImageSequence.Iterator(gif)]
                 while current_screen == "home" and animation_running:
-                    for frame in ImageSequence.Iterator(gif):
+                    for frame in frames[1:]:
                         if not animation_running:
                             return
-                        frame = frame.resize((disp.width, disp.height))
-                        frame = frame.rotate(0)
+
                         disp.ShowImage(frame)
                         time.sleep(0.05)
                         if current_screen != "home":
