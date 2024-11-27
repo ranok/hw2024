@@ -36,6 +36,8 @@ selected_menu_index = 0
 animation_running = False
 animation_thread = None
 base_animation = "base_animation.gif"
+pet_animation = "pet_animation.gif"
+feed_animation = "feed_animation.gif"
 current_animation = base_animation
 
 # Screen Manager
@@ -48,7 +50,8 @@ class ScreenManager:
             "home": self.home_screen,
             "menu": self.menu_screen,
             "stats": self.stats_screen,
-            "alerts": self.alerts_screen
+            "alerts": self.alerts_screen,
+            "interact": self.interact_screen
         }
 
     def show_screen(self, screen_name):
@@ -87,12 +90,62 @@ class ScreenManager:
         global animation_thread
         animation_thread = threading.Thread(target=play_animation, daemon=True)
         animation_thread.start()
+    
+    def interact_screen(self):
+        '''Screen that lets you play with/feed the bird'''
+        image = Image.new("RGB", (disp.width, disp.height), "BLACK")
+        draw = ImageDraw.Draw(image)
+        draw.text((10, 10), f"Food: {canarygotchi_state['food_available']}" , fill="WHITE", font_size=self.font_size)
+        draw.text((10, 10+self.text_y_space), f"1: Pet 2: Feed 3: Back" , fill="WHITE", font_size=self.font_size)
+        disp.ShowImage(image)
+
+        def play_interact_animation():
+            global animation_running, current_animation
+            gif = Image.open(current_animation)
+            #animation_running = True
+            try:
+                while not animation_running:
+                    pass
+            except KeyboardInterrupt:
+                disp.clear()
+            if current_animation == feed_animation and canarygotchi_state['food_available'] < 1:
+                image = Image.new("RGB", (disp.width, disp.height), "BLACK")
+                draw = ImageDraw.Draw(image)
+                draw.text((10, 10), f"No food available!" , fill="RED", font_size=self.font_size)
+                draw.text((10, 10+self.text_y_space), f"Deploy a Canarytoken to get food" , fill="WHITE", font_size=self.font_size)
+                disp.ShowImage(image)
+                return
+            if current_animation == feed_animation:
+                canarygotchi_state['food_available'] -= 1
+                canarygotchi_state['hunger'] = 0
+                canarygotchi_state['happiness'] += 10
+            elif current_animation == pet_animation:
+                canarygotchi_state['happiness'] += 10
+            canarystate.save_state(canarygotchi_state, console_state)
+            try:
+                while current_screen == "interact" and animation_running:
+                    for frame in ImageSequence.Iterator(gif):
+                        if not animation_running:
+                            return
+                        frame = frame.resize((disp.width, disp.height))
+                        frame = frame.rotate(0)
+                        disp.ShowImage(frame)
+                        time.sleep(0.05)
+                        if current_screen != "interact":
+                            return
+            except KeyboardInterrupt:
+                disp.clear()
+                logging.info("Exited interact Screen")
+
+        global animation_thread
+        animation_thread = threading.Thread(target=play_interact_animation, daemon=True)
+        animation_thread.start()
 
     def menu_screen(self):
         # Display the menu options
         image = Image.new("RGB", (disp.width, disp.height), "BLACK")
         draw = ImageDraw.Draw(image)
-        menu_items = ["1. Stats", "2. Alerts", "3. Timeline", "4. Settings"]
+        menu_items = ["1. Stats", "2. Interact with Canary", "3. Alerts", "4. Timeline", "5. Settings"]
         y = 10
         for i, item in enumerate(menu_items):
             if i == selected_menu_index:
@@ -108,11 +161,13 @@ class ScreenManager:
         draw = ImageDraw.Draw(image)
         draw.text((10, 10), f"Happiness: {canarygotchi_state['happiness']}", fill="WHITE", font_size=self.font_size)
         draw.text((10, 10+self.text_y_space), f"XP: {canarygotchi_state['xp']}", fill="WHITE", font_size=self.font_size)
+        draw.text((10, 10+self.text_y_space*2), f"Hunger: {canarygotchi_state['hunger']}", fill="WHITE", font_size=self.font_size)
+        draw.text((10, 10+self.text_y_space*3), f"Food available: {canarygotchi_state['food_available']}", fill="WHITE", font_size=self.font_size)
+
         disp.ShowImage(image)
 
     def alerts_screen(self):
-
-        # Display the alerts
+        '''Display the alerts'''
         image = Image.new("RGB", (disp.width, disp.height), "BLACK")
         draw = ImageDraw.Draw(image)
         y = 10
@@ -134,7 +189,7 @@ class ButtonHandler:
         self.screen_manager = screen_manager
 
     def handle_buttons(self):
-        global current_screen, selected_menu_index, current_animation
+        global current_screen, selected_menu_index, current_animation, animation_running
         try:
             while True:
                 if self.display.digital_read(self.display.GPIO_KEY1_PIN) == 1:  # Key 1 pressed
@@ -142,6 +197,9 @@ class ButtonHandler:
                     if current_screen == "home":
                         current_screen = "alerts"
                         self.screen_manager.show_screen(current_screen)
+                    if current_screen == "interact":
+                        current_animation = pet_animation
+                        animation_running = True
                     time.sleep(0.2)
 
                 elif self.display.digital_read(self.display.GPIO_KEY2_PIN) == 1:  # Key 2 pressed
@@ -149,12 +207,18 @@ class ButtonHandler:
                     if current_screen == "home":
                         current_screen = "menu"
                         self.screen_manager.show_screen(current_screen)
+                    if current_screen == "interact":
+                        current_animation = feed_animation
+                        animation_running = True
                     time.sleep(0.2)
 
                 elif self.display.digital_read(self.display.GPIO_KEY3_PIN) == 1:  # Key 3 pressed
                     logging.info("Key 3 pressed")
                     if current_screen == "home":
                         current_screen = "menu"
+                        self.screen_manager.show_screen(current_screen)
+                    if current_screen == "interact":
+                        current_screen = "home"
                         self.screen_manager.show_screen(current_screen)
                     time.sleep(0.2)
 
@@ -194,6 +258,8 @@ class ButtonHandler:
                         if selected_menu_index == 0:
                             current_screen = "stats"
                         elif selected_menu_index == 1:
+                            current_screen = "interact"
+                        elif selected_menu_index == 2:
                             current_screen = "alerts"
                         # Add more cases as needed for other menu items
                         self.screen_manager.show_screen(current_screen)
@@ -214,6 +280,7 @@ def poll_api():
             if cs_new['num_deployed_tokens'] > console_state['num_deployed_tokens']:
                 canarygotchi_state['happiness'] += 1
                 canarygotchi_state['xp'] += 5
+                canarygotchi_state['food_available'] += 1
 
             if new_things('live_devices'):
                 canarygotchi_state['happiness'] += 1
