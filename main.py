@@ -101,18 +101,18 @@ class ScreenManager:
 
         def play_interact_animation():
             global animation_running, current_animation
-            gif = Image.open(current_animation)
             #animation_running = True
             try:
                 while not animation_running:
                     pass
             except KeyboardInterrupt:
                 disp.clear()
+            gif = Image.open(current_animation)
             if current_animation == feed_animation and canarygotchi_state['food_available'] < 1:
                 image = Image.new("RGB", (disp.width, disp.height), "BLACK")
                 draw = ImageDraw.Draw(image)
                 draw.text((10, 10), f"No food available!" , fill="RED", font_size=self.font_size)
-                draw.text((10, 10+self.text_y_space), f"Deploy a Canarytoken to get food" , fill="WHITE", font_size=self.font_size)
+                draw.text((10, 10+self.text_y_space), f"Deploy a Canarytoken" , fill="WHITE", font_size=self.font_size)
                 disp.ShowImage(image)
                 return
             if current_animation == feed_animation:
