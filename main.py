@@ -92,7 +92,7 @@ class ScreenManager:
                         frame = frame.resize((disp.width, disp.height))
                         frame = frame.rotate(0)
                         disp.ShowImage(frame)
-                        time.sleep(0.01)
+                        time.sleep(0.05)
                         if current_screen != "home":
                             return
             except KeyboardInterrupt:
