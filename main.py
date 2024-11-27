@@ -205,9 +205,9 @@ class ButtonHandler:
                 elif self.display.digital_read(self.display.GPIO_KEY2_PIN) == 1:  # Key 2 pressed
                     logging.info("Key 2 pressed")
                     if current_screen == "home":
-                        current_screen = "menu"
+                        current_screen = "interact"
                         self.screen_manager.show_screen(current_screen)
-                    if current_screen == "interact":
+                    elif current_screen == "interact":
                         current_animation = feed_animation
                         animation_running = True
                     time.sleep(0.2)
