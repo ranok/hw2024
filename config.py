@@ -6,7 +6,7 @@
 # *----------------
 # * | This version:   V1.0
 # * | Date        :   2019-06-21
-# * | Info        :   
+# * | Info        :
 # ******************************************************************************
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documnetation files (the "Software"), to deal
@@ -37,7 +37,7 @@ from gpiozero import *
 
 
 #GPIO define
-KEY_UP_PIN     = 6 
+KEY_UP_PIN     = 6
 KEY_DOWN_PIN   = 19
 KEY_LEFT_PIN   = 5
 KEY_RIGHT_PIN  = 26
@@ -60,21 +60,21 @@ class RaspberryPi:
         self.GPIO_DC_PIN = self.gpio_mode(dc,self.OUTPUT)
         self.GPIO_BL_PIN = self.gpio_pwm(bl)
         self.bl_DutyCycle(0)
-        
+
         #init GPIO
         # for P4:
         # sudo vi /boot/config.txt
         # gpio=6,19,5,26,13,21,20,16=pu
 
-        self.GPIO_KEY_UP_PIN     = self.gpio_mode(KEY_UP_PIN,self.INPUT,True,None)
-        self.GPIO_KEY_DOWN_PIN   = self.gpio_mode(KEY_DOWN_PIN,self.INPUT,True,None)
-        self.GPIO_KEY_LEFT_PIN   = self.gpio_mode(KEY_LEFT_PIN,self.INPUT,True,None)
-        self.GPIO_KEY_RIGHT_PIN  = self.gpio_mode(KEY_RIGHT_PIN,self.INPUT,True,None)
-        self.GPIO_KEY_PRESS_PIN  = self.gpio_mode(KEY_PRESS_PIN,self.INPUT,True,None)
+        # self.GPIO_KEY_UP_PIN     = self.gpio_mode(KEY_UP_PIN,self.INPUT,True,None)
+        # self.GPIO_KEY_DOWN_PIN   = self.gpio_mode(KEY_DOWN_PIN,self.INPUT,True,None)
+        # self.GPIO_KEY_LEFT_PIN   = self.gpio_mode(KEY_LEFT_PIN,self.INPUT,True,None)
+        # self.GPIO_KEY_RIGHT_PIN  = self.gpio_mode(KEY_RIGHT_PIN,self.INPUT,True,None)
+        # self.GPIO_KEY_PRESS_PIN  = self.gpio_mode(KEY_PRESS_PIN,self.INPUT,True,None)
 
-        self.GPIO_KEY1_PIN       = self.gpio_mode(KEY1_PIN,self.INPUT,True,None)
-        self.GPIO_KEY2_PIN       = self.gpio_mode(KEY2_PIN,self.INPUT,True,None)
-        self.GPIO_KEY3_PIN       = self.gpio_mode(KEY3_PIN,self.INPUT,True,None)
+        # self.GPIO_KEY1_PIN       = self.gpio_mode(KEY1_PIN,self.INPUT,True,None)
+        # self.GPIO_KEY2_PIN       = self.gpio_mode(KEY2_PIN,self.INPUT,True,None)
+        # self.GPIO_KEY3_PIN       = self.gpio_mode(KEY3_PIN,self.INPUT,True,None)
 
 
         #Initialize SPI
@@ -110,24 +110,24 @@ class RaspberryPi:
 
     def bl_DutyCycle(self, duty):
         self.GPIO_BL_PIN.value = duty / 100
-        
+
     def bl_Frequency(self,freq):# Hz
         self.GPIO_BL_PIN.frequency = freq
-           
+
     def module_init(self):
         if self.SPI!=None :
-            self.SPI.max_speed_hz = self.SPEED        
-            self.SPI.mode = 0b00     
+            self.SPI.max_speed_hz = self.SPEED
+            self.SPI.mode = 0b00
         return 0
 
     def module_exit(self):
         logging.debug("spi end")
         if self.SPI!=None :
             self.SPI.close()
-        
+
         logging.debug("gpio cleanup...")
         self.digital_write(self.GPIO_RST_PIN, 1)
-        self.digital_write(self.GPIO_DC_PIN, 0)   
+        self.digital_write(self.GPIO_DC_PIN, 0)
         self.GPIO_BL_PIN.close()
         time.sleep(0.001)
 

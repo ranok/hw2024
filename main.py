@@ -14,6 +14,7 @@ import canarystate
 from canarystate import save_state, canarygotchi_state, console_state, console
 import canarytools
 from copy import deepcopy
+import gpiozero
 
 load_dotenv()
 
@@ -39,6 +40,17 @@ base_animation = "base_animation.gif"
 pet_animation = "pet_animation.gif"
 feed_animation = "feed_animation.gif"
 current_animation = base_animation
+
+
+KEY_UP_PIN     = 6
+KEY_DOWN_PIN   = 19
+KEY_LEFT_PIN   = 5
+KEY_RIGHT_PIN  = 26
+KEY_PRESS_PIN  = 13
+
+KEY1_PIN       = 21
+KEY2_PIN       = 20
+KEY3_PIN       = 16
 
 # Screen Manager
 class ScreenManager:
@@ -80,7 +92,7 @@ class ScreenManager:
                         frame = frame.resize((disp.width, disp.height))
                         frame = frame.rotate(0)
                         disp.ShowImage(frame)
-                        time.sleep(0.05)
+                        time.sleep(0.01)
                         if current_screen != "home":
                             return
             except KeyboardInterrupt:
@@ -90,7 +102,7 @@ class ScreenManager:
         global animation_thread
         animation_thread = threading.Thread(target=play_animation, daemon=True)
         animation_thread.start()
-    
+
     def interact_screen(self):
         '''Screen that lets you play with/feed the bird'''
         image = Image.new("RGB", (disp.width, disp.height), "BLACK")
@@ -188,82 +200,87 @@ class ButtonHandler:
         self.display = display
         self.screen_manager = screen_manager
 
-    def handle_buttons(self):
+    def setup_buttons(self):
+        button_pins = [
+            KEY1_PIN, KEY2_PIN, KEY3_PIN, KEY_PRESS_PIN,
+            KEY_UP_PIN, KEY_DOWN_PIN, KEY_LEFT_PIN, KEY_RIGHT_PIN
+            ]
+
+        buttons = [gpiozero.Button(b) for b in button_pins]
+        for button in buttons:
+            button.when_pressed = self.handle_buttons
+
+    def handle_buttons(self, button):
+        gpio = button.pin.info.name
+        pin_num = int(gpio[4:])
         global current_screen, selected_menu_index, current_animation, animation_running
         try:
-            while True:
-                if self.display.digital_read(self.display.GPIO_KEY1_PIN) == 1:  # Key 1 pressed
-                    logging.info("Key 1 pressed")
-                    if current_screen == "home":
-                        current_screen = "alerts"
-                        self.screen_manager.show_screen(current_screen)
-                    if current_screen == "interact":
-                        current_animation = pet_animation
-                        animation_running = True
-                    time.sleep(0.2)
-
-                elif self.display.digital_read(self.display.GPIO_KEY2_PIN) == 1:  # Key 2 pressed
-                    logging.info("Key 2 pressed")
-                    if current_screen == "home":
-                        current_screen = "interact"
-                        self.screen_manager.show_screen(current_screen)
-                    elif current_screen == "interact":
-                        current_animation = feed_animation
-                        animation_running = True
-                    time.sleep(0.2)
-
-                elif self.display.digital_read(self.display.GPIO_KEY3_PIN) == 1:  # Key 3 pressed
-                    logging.info("Key 3 pressed")
-                    if current_screen == "home":
-                        current_screen = "menu"
-                        self.screen_manager.show_screen(current_screen)
-                    if current_screen == "interact":
-                        current_screen = "home"
-                        self.screen_manager.show_screen(current_screen)
-                    time.sleep(0.2)
-
-                elif self.display.digital_read(self.display.GPIO_KEY_UP_PIN) == 1:  # Up button pressed
-                    logging.info("Up button pressed")
-                    if current_screen == "menu":
-                        selected_menu_index = (selected_menu_index - 1) % 4 # TODO: fix so that menu item count is not hardcoded
-                        self.screen_manager.show_screen(current_screen)
-                    if current_screen == "alerts":
-                        selected_menu_index = (selected_menu_index - 1) % 10 # TODO: fix so that menu item count is not hardcoded
-                        self.screen_manager.show_screen(current_screen)
-                    time.sleep(0.2)
-
-                elif self.display.digital_read(self.display.GPIO_KEY_DOWN_PIN) == 1:  # Down button pressed
-                    logging.info("Down button pressed")
-                    if current_screen == "menu":
-                        selected_menu_index = (selected_menu_index + 1) % 4 # TODO: fix so that menu item count is not hardcoded
-                        self.screen_manager.show_screen(current_screen)
-                    if current_screen == "alerts":
-                        selected_menu_index = (selected_menu_index + 1) % 10 # TODO: fix so that menu item count is not hardcoded
-                        self.screen_manager.show_screen(current_screen)
-                    time.sleep(0.2)
-
-                elif self.display.digital_read(self.display.GPIO_KEY_LEFT_PIN) == 1:  # Left button pressed
-                    logging.info("Left button pressed")
-                    if current_screen == "menu":
-                        current_screen = "home"
-                        current_animation = base_animation  # Reset to base animation
-                    elif current_screen in ["stats", "alerts"]:
-                        current_screen = "menu"
+            if pin_num == KEY1_PIN:  # Key 1 pressed
+                logging.info("Key 1 pressed")
+                if current_screen == "home":
+                    current_screen = "alerts"
                     self.screen_manager.show_screen(current_screen)
-                    time.sleep(0.2)
+                if current_screen == "interact":
+                    current_animation = pet_animation
+                    animation_running = True
 
-                elif self.display.digital_read(self.display.GPIO_KEY_RIGHT_PIN) == 1:  # Right button pressed
-                    logging.info("Right button pressed")
-                    if current_screen == "menu":
-                        if selected_menu_index == 0:
-                            current_screen = "stats"
-                        elif selected_menu_index == 1:
-                            current_screen = "interact"
-                        elif selected_menu_index == 2:
-                            current_screen = "alerts"
-                        # Add more cases as needed for other menu items
-                        self.screen_manager.show_screen(current_screen)
-                    time.sleep(0.2)
+            elif pin_num == KEY2_PIN:  # Key 2 pressed
+                logging.info("Key 2 pressed")
+                if current_screen == "home":
+                    current_screen = "interact"
+                    self.screen_manager.show_screen(current_screen)
+                elif current_screen == "interact":
+                    current_animation = feed_animation
+                    animation_running = True
+
+            elif pin_num == KEY3_PIN:  # Key 3 pressed
+                logging.info("Key 3 pressed")
+                if current_screen == "home":
+                    current_screen = "menu"
+                    self.screen_manager.show_screen(current_screen)
+                if current_screen == "interact":
+                    current_screen = "home"
+                    self.screen_manager.show_screen(current_screen)
+
+            elif pin_num == KEY_UP_PIN:  # Up button pressed
+                logging.info("Up button pressed")
+                if current_screen == "menu":
+                    selected_menu_index = (selected_menu_index - 1) % 4 # TODO: fix so that menu item count is not hardcoded
+                    self.screen_manager.show_screen(current_screen)
+                if current_screen == "alerts":
+                    selected_menu_index = (selected_menu_index - 1) % 10 # TODO: fix so that menu item count is not hardcoded
+                    self.screen_manager.show_screen(current_screen)
+
+            elif pin_num == KEY_DOWN_PIN:  # Down button pressed
+                logging.info("Down button pressed")
+                if current_screen == "menu":
+                    selected_menu_index = (selected_menu_index + 1) % 4 # TODO: fix so that menu item count is not hardcoded
+                    self.screen_manager.show_screen(current_screen)
+                if current_screen == "alerts":
+                    selected_menu_index = (selected_menu_index + 1) % 10 # TODO: fix so that menu item count is not hardcoded
+                    self.screen_manager.show_screen(current_screen)
+
+            elif pin_num == KEY_LEFT_PIN:  # Left button pressed
+                logging.info("Left button pressed")
+                if current_screen == "menu":
+                    current_screen = "home"
+                    current_animation = base_animation  # Reset to base animation
+                elif current_screen in ["stats", "alerts"]:
+                    current_screen = "menu"
+                self.screen_manager.show_screen(current_screen)
+
+            elif pin_num == KEY_RIGHT_PIN:  # Right button pressed
+                logging.info("Right button pressed")
+                if current_screen == "menu":
+                    if selected_menu_index == 0:
+                        current_screen = "stats"
+                    elif selected_menu_index == 1:
+                        current_screen = "interact"
+                    elif selected_menu_index == 2:
+                        current_screen = "alerts"
+                    # Add more cases as needed for other menu items
+                    self.screen_manager.show_screen(current_screen)
+
         except KeyboardInterrupt:
             self.display.module_exit()
 
@@ -356,7 +373,9 @@ def main():
     screen_manager.show_screen(current_screen)
 
     # Start button handling
-    button_handler.handle_buttons()
+    button_handler.setup_buttons()
+    while True:
+        time.sleep(1)
 
 if __name__ == "__main__":
     main()
