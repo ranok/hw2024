@@ -10,7 +10,7 @@ import canarytools
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
-
+from threading import Lock
 
 load_dotenv()
 
@@ -23,7 +23,7 @@ console = canarytools.Console(console_hash, auth_token)
 
 STATE_FILE = 'cgstate.dat'
 
-
+state_lock = Lock()
 
 canarygotchi_state = {
     "happiness": 100,
@@ -55,8 +55,10 @@ def save_state(cgs = canarygotchi_state, cs = console_state):
         'cgs': cgs,
         'cs': cs
     }
+    state_lock.acquire()
     with open(STATE_FILE, 'wb') as fp:
         pickle.dump(state, fp)
+    state_lock.release()
 
 def capi(uri):
     try:
