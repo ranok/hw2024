@@ -39,7 +39,8 @@ console_state = {
     'live_devices': 0,
     'dead_devices': 0,
     'bare_devices': 0, # no services enabled
-    'unacked_incidents': []
+    'unacked_incidents': [],
+    'attacks': []
 }
 
 sf = Path(STATE_FILE)
