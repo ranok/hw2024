@@ -177,7 +177,7 @@ class ScreenManager:
                         # FIX when we have counts for attacks (portscan against Canarygotchi)
                         # if len(console_state['attacks']) > 0:
                         #
-                        if False:
+                        if len(console_state['attacks']) > 0:
                             icon_attack_text = str(len(console_state['attacks']))
                             icon_attack_x = 140  # Left margin for the icon
                             icon_attack_y = 5  # Top margin for the icon
@@ -489,7 +489,7 @@ def main():
     psd_queue = queue.Queue()
     psd = PSD(psd_queue)
     psd.start()
-    portscan_expire = timedelta(seconds=10)
+    portscan_expire = timedelta(minutes=10)
     while True:
         try:
             psd_event = psd_queue.get(timeout=5)
