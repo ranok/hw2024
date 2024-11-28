@@ -320,7 +320,7 @@ class ScreenManager:
         else:
             msgs.append('Connected to WiFi')
             msgs.append(f'SSID: {cssid}')
-        for i, msg in enumerate(msgs):
+        for msg in msgs:
             draw.text((10, y), msg, fill='WHITE', font_size=self.font_size)
             y += self.text_y_space
         disp.ShowImage(image)
