@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import nmcli
+from typing import Optional
 from flask import Flask, request
 
 app = Flask(__name__)
@@ -9,6 +10,11 @@ ENV_FILE = '/opt/cg/.env'
 
 def wifi_connected() -> bool:
     return any(w.in_use for w in nmcli.device.wifi())
+
+def active_ssid() -> Optional[str]:
+    if not wifi_connected():
+        return None
+    return [wn.ssid for wn in nmcli.device.wifi() if wn.in_use][0]
 
 def setup_hotspot(ssid : str = 'canarygotchi', password : str = 'canarygotchi'):
     return nmcli.device.wifi_hotspot(ssid = ssid, password = password)

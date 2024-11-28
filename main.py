@@ -2,14 +2,13 @@
 
 import spidev as SPI
 import logging, qrcode
-import ST7789
+import ST7789, wifi_config
 from dotenv import load_dotenv
 import time
 import threading
 import requests
 import os
 from PIL import Image, ImageSequence, ImageDraw
-import pickle
 import canarystate
 from canarystate import save_state, canarygotchi_state, console_state, console
 from psd import PSD, PSDEvent
@@ -70,7 +69,8 @@ class ScreenManager:
             "menu": self.menu_screen,
             "stats": self.stats_screen,
             "alerts": self.alerts_screen,
-            "interact": self.interact_screen
+            "interact": self.interact_screen,
+            "wifi": self.wifi_screen
         }
 
     def show_screen(self, screen_name):
@@ -266,7 +266,7 @@ class ScreenManager:
         # Display the menu options
         image = Image.new("RGB", (disp.width, disp.height), "BLACK")
         draw = ImageDraw.Draw(image)
-        menu_items = ["1. Stats", "2. Interact with Canary", "3. Alerts", "4. Timeline", "5. Settings"]
+        menu_items = ["1. Stats", "2. Interact with Canary", "3. Alerts", "4. Timeline", "5. WiFI Settings"]
         y = 10
         for i, item in enumerate(menu_items):
             if i == selected_menu_index:
@@ -302,6 +302,29 @@ class ScreenManager:
         else:
             draw.text((10, y), "No alerts", fill="WHITE", font_size=self.font_size)
         disp.ShowImage(image)
+    
+    def wifi_screen(self):
+        '''Shows WiFi information'''
+        image = Image.new("RGB", (disp.width, disp.height), "BLACK")
+        draw = ImageDraw.Draw(image)
+        y = 10
+        ssid = 'canarygotchi'
+        cssid = wifi_config.active_ssid()
+        msgs = []
+        if cssid is None or cssid == ssid:
+            # Hotspot
+            msgs.append('Running hotspot:')
+            msgs.append('SSID: ' + ssid)
+            msgs.append('PW: canarygotchi')
+            msgs.append('URL: canarygotchi.local:8080')
+        else:
+            msgs.append('Connected to WiFi')
+            msgs.append(f'SSID: {cssid}')
+        for i, msg in enumerate(msgs):
+            draw.text((10, y), msg, fill='WHITE', font_size=self.font_size)
+            y += self.text_y_space
+        disp.ShowImage(image)
+
 
 # Button Handling
 class ButtonHandler:
@@ -354,7 +377,7 @@ class ButtonHandler:
             elif pin_num == KEY_UP_PIN:  # Up button pressed
                 logging.info("Up button pressed")
                 if current_screen == "menu":
-                    selected_menu_index = (selected_menu_index - 1) % 4 # TODO: fix so that menu item count is not hardcoded
+                    selected_menu_index = (selected_menu_index - 1) % 5 # TODO: fix so that menu item count is not hardcoded
                     self.screen_manager.show_screen(current_screen)
                 if current_screen == "alerts":
                     selected_menu_index = (selected_menu_index - 1) % 10 # TODO: fix so that menu item count is not hardcoded
@@ -363,7 +386,7 @@ class ButtonHandler:
             elif pin_num == KEY_DOWN_PIN:  # Down button pressed
                 logging.info("Down button pressed")
                 if current_screen == "menu":
-                    selected_menu_index = (selected_menu_index + 1) % 4 # TODO: fix so that menu item count is not hardcoded
+                    selected_menu_index = (selected_menu_index + 1) % 5 # TODO: fix so that menu item count is not hardcoded
                     self.screen_manager.show_screen(current_screen)
                 if current_screen == "alerts":
                     selected_menu_index = (selected_menu_index + 1) % 10 # TODO: fix so that menu item count is not hardcoded
@@ -387,6 +410,8 @@ class ButtonHandler:
                         current_screen = "interact"
                     elif selected_menu_index == 2:
                         current_screen = "alerts"
+                    elif selected_menu_index == 5:
+                        current_screen = "wifi"
                     # Add more cases as needed for other menu items
                     self.screen_manager.show_screen(current_screen)
 
