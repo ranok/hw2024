@@ -100,18 +100,12 @@ def get_console_state() -> dict:
     except Exception:
         logger.exception("Failed to live/dead device counts")
 
-    if not new_state['unacked_incidents']:
-        unacknowledged = console.incidents.unacknowledged()
-        new_state['unacked_incidents'] = unacknowledged
-    else:
-        # We have some already cached, just get newer ones:
-        latest = sorted(console_state['unacked_incidents'], key=lambda d: d.created_std)[-1]
-        new_unacked = console.incidents.unacknowledged(newer_than=latest.created_std.strftime("%Y-%m-%d-%H:%M:%S"))
-        new_state['unacked_incidents'].extend([na for na in new_unacked if not na.id in [i.id for i in console_state['unacked_incidents']]])
-        logger.info(f"Latest incident: {latest.created_std} All: {[i.created_std for i in console_state['unacked_incidents']]}")
+    unacknowledged = console.incidents.unacknowledged()
+    last_ten_unacked = sorted(unacknowledged, key=lambda d: d.created_std)[-10:]
+    new_state['unacked_incidents'] = last_ten_unacked[::-1] # Newest first
 
     for u in new_state['unacked_incidents']:
-        logger.info(f"Unacknowledged: {str(u.created_std)}: {type(u.created_std)}")
+        logger.info(f"Unacknowledged: {u.summary} @ {u.created_std}")
 
     return new_state
 

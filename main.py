@@ -86,12 +86,12 @@ class ScreenManager:
         # Display the Tamagotchi animations in a separate thread
         def play_animation():
             global incident_animation, sad_animation, animation_running, current_animation, console_state, base_animation, base_animation_2
-            
+
             animation_running = True
 
             icon_attack = Image.open("media/icons/attack.png").convert("RGBA")  # Load the icon image
-            icon_attack = icon_attack.resize((30, 30))  # Resize the icon if 
-            
+            icon_attack = icon_attack.resize((30, 30))  # Resize the icon if
+
             icon_alert = Image.open("media/icons/alert.png").convert("RGBA")  # Load the icon image
             icon_alert = icon_alert.resize((30, 30))  # Resize the icon if needed
 
@@ -105,16 +105,16 @@ class ScreenManager:
                 frames = [frame.resize((resized_height, resized_width)).rotate(0) for frame in ImageSequence.Iterator(gif)]
                 base_animation_repeats = 0
 
-                last_incident_count = len(console_state['unacked_incidents']) 
-                
+                last_incident_count = len(console_state['unacked_incidents'])
+
                 while current_screen == "home" and animation_running:
                     playIncidentAnimation = False
-                    current_incident_count = len(console_state['unacked_incidents']) 
+                    current_incident_count = len(console_state['unacked_incidents'])
                     if last_incident_count == 0 and current_incident_count > 0:
-                        last_incident_count = len(console_state['unacked_incidents']) 
+                        last_incident_count = len(console_state['unacked_incidents'])
                         playIncidentAnimation = True
                     else:
-                        last_incident_count = len(console_state['unacked_incidents']) 
+                        last_incident_count = len(console_state['unacked_incidents'])
 
                     base_animation_repeats += 1
 
@@ -142,12 +142,12 @@ class ScreenManager:
                             current_animation = base_animation
                         else:
                             current_animation = base_animation_2
-                        
+
                         if playIncidentAnimation:
                             current_animation = incident_animation
                         #print(current_animation)
                         gif = Image.open(current_animation)
-                        
+
                         resized_width = disp.width - 50
                         resized_height = disp.height - 50
                         frames = [frame.resize((resized_height, resized_width)).rotate(0) for frame in ImageSequence.Iterator(gif)]
@@ -158,8 +158,8 @@ class ScreenManager:
 
                         canvas = Image.new("RGB", (disp.width, disp.height), "BLACK")
                         draw = ImageDraw.Draw(canvas)
-                       
-                        
+
+
                         if len(console_state['unacked_incidents']) > 0:
                             icon_alert_text = str(len(console_state['unacked_incidents']))
                             icon_alert_x = 5  # Left margin for the icon
@@ -185,10 +185,10 @@ class ScreenManager:
                             canvas.paste(icon_attack, (icon_attack_x, icon_attack_y), icon_attack)  # Use the alpha channel for transparency
 
                         if canarygotchi_state["happiness"] < 61:
-                            
+
                             icon_sad_x = 205  # Left margin for the icon
                             icon_sad_y = 5  # Top margin for the icon
-                            
+
                             canvas.paste(icon_sad, (icon_sad_x, icon_sad_y), icon_sad)  # Use the alpha channel for transparency
 
                         # Paste the resized frame below the text and icon
@@ -412,8 +412,10 @@ def poll_api():
             if new_things('dead_devices'):
                 canarygotchi_state['happiness'] -= 1
 
-            if len(cs_new['unacked_incidents']) > len(console_state['unacked_incidents']):
-                logging.info("New unack'd incidents discovered")
+            if len(cs_new['unacked_incidents']) != len(console_state['unacked_incidents']):
+                unacked_difference = len(cs_new['unacked_incidents']) - len(console_state['unacked_incidents'])
+                canarygotchi_state['happiness'] -= unacked_difference
+                logging.info(f"Unack'd delta: {unacked_difference}")
 
             #response = requests.get(f"{console_hash}/api/v1/ping", params=payload)
             #if response.status_code == 200:
