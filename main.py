@@ -302,7 +302,7 @@ class ScreenManager:
         else:
             draw.text((10, y), "No alerts", fill="WHITE", font_size=self.font_size)
         disp.ShowImage(image)
-    
+
     def wifi_screen(self):
         '''Shows WiFi information'''
         image = Image.new("RGB", (disp.width, disp.height), "BLACK")
@@ -424,7 +424,7 @@ def poll_api():
     while True:
         try:
             logging.info("Polling console...")
-            cs_new = canarystate.get_console_state()
+            cs_new = canarystate.get_console_state(console_state)
 
             new_things = lambda k: cs_new[k] > console_state[k]
 
@@ -455,8 +455,8 @@ def poll_api():
                 #    if current_screen == "home":
                         # Restart the animation thread to play the new animation
                 #        screen_manager.show_screen(current_screen)
-
-            console_state = deepcopy(cs_new)
+            logging.warn(f"console_state: {console_state} cs_new: {cs_new}")
+            console_state = deepcopy(console_state | cs_new)
             canarystate.save_state(canarygotchi_state, console_state)
         except canarytools.ConsoleError:
             logging.exception(f"API request failed")
@@ -514,7 +514,7 @@ def main():
     psd_queue = queue.Queue()
     psd = PSD(psd_queue)
     psd.start()
-    portscan_expire = timedelta(minutes=10)
+    portscan_expire = timedelta(minutes=1)
     while True:
         try:
             psd_event = psd_queue.get(timeout=5)
@@ -525,9 +525,9 @@ def main():
             # attacks_after_expiry has to be <= existing console_state['attacks'] as its a filtered (sub)set thereof.
             attacks_delta = len(console_state['attacks']) - len(attacks_after_expiry)
             console_state['attacks'] = attacks_after_expiry
+            logging.warn(f"Attacks: {console_state['attacks']}")
             if attacks_delta > 0:
                 logging.info(f"Expired {attacks_delta} attacks")
-                canarystate.save_state(canarygotchi_state, console_state)
 
 
 if __name__ == "__main__":

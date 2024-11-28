@@ -74,13 +74,14 @@ def capi(uri):
 
 
 
-def get_console_state() -> dict:
+def get_console_state(previous_state = console_state) -> dict:
+    global console_state
     url = f"https://{console_hash}.canary.tools"
     res = requests.get(url + '/api/v1/license/detailed/info', data={'auth_token': auth_token})
     if res.status_code != 200:
         print("Error fetching console state! " + res.text)
         return {}
-    new_state = deepcopy(console_state)
+    new_state = deepcopy(previous_state)
     new_state['num_unused_licenses'] = res.json().get('canaryvm_remaining_licenses', 0)
     res = requests.get(url + '/api/v1/canarytokens/fetch', data={'auth_token': auth_token})
     if res.status_code != 200:
