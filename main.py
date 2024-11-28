@@ -498,14 +498,11 @@ def main():
         except queue.Empty:
             attacks_after_expiry = [p for p in console_state['attacks'] if p.timestamp > (datetime.now() - portscan_expire)]
             # attacks_after_expiry has to be <= existing console_state['attacks'] as its a filtered (sub)set thereof.
-            logging.info(f"Attacks after expiry: {attacks_after_expiry} console_state['attacks]: {console_state['attacks']}")
             attacks_delta = len(console_state['attacks']) - len(attacks_after_expiry)
             console_state['attacks'] = attacks_after_expiry
-            logging.info(f"Attacks after expiry: {attacks_after_expiry} console_state['attacks]: {console_state['attacks']}")
             if attacks_delta > 0:
                 logging.info(f"Expired {attacks_delta} attacks")
                 canarystate.save_state(canarygotchi_state, console_state)
-                logging.info(f"Attacks after expiry: {attacks_after_expiry} console_state['attacks]: {console_state['attacks']}")
 
 
 if __name__ == "__main__":
