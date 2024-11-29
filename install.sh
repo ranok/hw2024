@@ -11,5 +11,5 @@ cd /opt/cg && git clone https://github.com/ranok/hw2024.git .
 cd /opt/cg && sudo ln -s /opt/cg/wificonfig.service /etc/systemd/system/wificonfig.service
 sudo systemctl enable --now wificonfig.service
 cd /opt/cg && python3 -m venv venv
-sudo setcap CAP_NET_ADMIN=+eip "$(readlink -f bin/python)" # Persists, The file capability sets are stored in an extended attribute (see setxattr(2)) named security.capability.
+sudo setcap CAP_NET_ADMIN=+eip "$(readlink -f venv/bin/python)" # Persists, The file capability sets are stored in an extended attribute (see setxattr(2)) named security.capability.
 cd /opt/cg && source venv/bin/activate && pip install pillow numpy lgpio spidev gpiozero flask python-dotenv qrcode nmcli canarytools scapy netfilterqueue
