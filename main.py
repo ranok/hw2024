@@ -19,7 +19,7 @@ import gpiozero
 import random
 from datetime import datetime, timedelta
 import uuid
-from functools import reduce 
+from functools import reduce
 
 load_dotenv()
 
@@ -78,7 +78,8 @@ class ScreenManager:
             "alerts": self.alerts_screen,
             "wifi": self.wifi_screen,
             "interact": self.interact_screen,
-            "registration": self.registration_screen
+            "registration": self.registration_screen,
+            "alert_qrcode": self.alert_qrcode_screen
         }
 
     def show_screen(self, screen_name):
@@ -186,16 +187,16 @@ class ScreenManager:
                         #print(current_animation)
                         gif = Image.open(current_animation)
 
-                        
 
-                        
+
+
                         frames = [frame.resize((resized_height, resized_width)).rotate(0) for frame in ImageSequence.Iterator(gif)]
 
                     for frame in frames[1:]:
                         if not animation_running:
                             return
 
-                        
+
                         canvas = Image.new("RGB", (disp.width, disp.height), "BLACK")
                         draw = ImageDraw.Draw(canvas)
 
@@ -327,17 +328,17 @@ class ScreenManager:
             canvas = Image.new("RGB", (disp.width, disp.height), "BLACK")
             draw = ImageDraw.Draw(canvas)
             draw.text((5,5), "Enter sequence: ", fill="WHITE", font_size=16)
-            
+
             canvas.paste(qrimage, (20,40), qrimage)
             disp.ShowImage(canvas)
-            
+
             reg_seq = []
             len_last_reg_seq = 0
             while True:
                 if len_last_reg_seq != len(reg_seq):
                     print(reg_seq)
                     len_last_reg_seq = len(reg_seq)
-                
+
                 if len(reg_seq) == 5:
                     print(reg_seq)
                     #seq = "sequence=" + ",".join(reg_seq)
@@ -346,7 +347,7 @@ class ScreenManager:
                     }
                     print(seq)
                     r = requests.post(f'http://canarygotchi.com/api/validate-sequence/{cg_uuid}', json=seq)
-                    
+
                     try:
                         response_data = r.json()
 
@@ -381,7 +382,7 @@ class ScreenManager:
                         print("Sequence validation failed")
                     break
                 time.sleep(0.5)
-        
+
         global animation_thread
         animation_thread = threading.Thread(target=play_registration_animation, daemon=True)
         animation_thread.start()
@@ -410,14 +411,14 @@ class ScreenManager:
             #    for s in k.events:
             #        print(s)
             #        print(vars(s))
-                
-  
+
+
             for i, alert in enumerate(console_state['unacked_incidents']):
-                
-               
+
+
                 #repls = { "Canarytoken triggered:": "tkn"}
-                
-               
+
+
                 #for key, value in repls.items():
                 #    title = title.replace(key, value)
                 #print(title)
@@ -430,6 +431,16 @@ class ScreenManager:
         else:
             draw.text((10, y), "No alerts", fill="WHITE", font_size=self.font_size)
         disp.ShowImage(image)
+
+    def alert_qrcode_screen(self):
+        alert = console_state['unacked_incidents'][selected_menu_index]
+        logging.info(f"Showing QR for alert: {alert}")
+        image = Image.new("RGB", (disp.width, disp.height), "BLACK")
+        qrimage = generate_qrcode(f'https://{canarystate.console_hash}.canary.tools/nest/incident/{alert["hash"]}')
+        qrimage = qrimage.resize((240, 240))
+        canvas = Image.new("RGB", (disp.width, disp.height), "BLACK")
+        canvas.paste(qrimage, (0,0), qrimage)
+        disp.ShowImage(canvas)
 
     def wifi_screen(self):
         '''Shows WiFi information'''
@@ -533,12 +544,12 @@ class ButtonHandler:
                     current_screen = "home"
                     current_animation = base_animation  # Reset to base animation
                     self.screen_manager.show_screen(current_screen)
-                elif current_screen in ["stats", "alerts", "interact", "wifi"]:
+                elif current_screen in ["stats", "alerts", "interact", "wifi", "alerts", "alert_qrcode"]:
                     current_screen = "menu"
                     self.screen_manager.show_screen(current_screen)
                 if current_screen == "registration":
                     reg_seq.append("left")
-                
+
 
             elif pin_num == KEY_RIGHT_PIN:  # Right button pressed
                 logging.info("Right button pressed")
@@ -559,10 +570,14 @@ class ButtonHandler:
                         current_screen = "registration"
                         self.screen_manager.show_screen(current_screen)
                     # Add more cases as needed for other menu items
-                    
+                elif current_screen == "alerts":
+                    # An alert selected with right key, show QR code:
+                    current_screen = "alert_qrcode"
+                    self.screen_manager.show_screen(current_screen)
+
                 if current_screen == "registration":
                     reg_seq.append("right")
-                
+
 
         except KeyboardInterrupt:
             self.display.module_exit()
@@ -625,7 +640,7 @@ def main():
     except:
         print("generating UUID")
         tmp_uuid = uuid.uuid4()
-        
+
         with open(ENV_FILE, 'a') as fp:
             efc = f"UUID={str(tmp_uuid)}\n"
             fp.write(efc)

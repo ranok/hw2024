@@ -62,7 +62,7 @@ def save_state(cgs = canarygotchi_state, cs = console_state):
     state_lock.release()
 
 def capi(uri):
-   
+
     try:
         res = requests.get(f'https://{console_hash}.canary.tools/api/v1/{uri}', data={'auth_token': auth_token})
         if not res.ok:
@@ -114,18 +114,20 @@ def get_console_state(previous_state = console_state) -> dict:
         incident_name = incident["description"]["name"]
         incident_memo = incident["description"].get("memo", "No memo available")  # Default if "memo" key doesn't exist
         incident_id = incident["id"]
-        
+        incident_hash = incident["hash_id"]
+
         # Determine the title based on the incident_name
         # Super limited space on the screen, so we need to shorten stuff
         if incident_name == "N/A": # incident from canarytoken
             incident_title = f"Token: {incident_memo[:20]}"
         else: #incident from Canary
             incident_title = f"{incident_name}: {incident_summary[:20]}"
-        
+
         # Create the incident dictionary
         new_alerts.append({
             "title": incident_title,
-            "id": incident_id
+            "id": incident_id,
+            "hash": incident_hash
         })
     new_state['unacked_incidents'] = new_alerts[::-1]
 
