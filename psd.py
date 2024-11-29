@@ -21,7 +21,7 @@ class PSD:
     """
     NF_QUEUE=1
 
-    def __init__(self, event_queue, event_wait=timedelta(minutes=10)):
+    def __init__(self, event_queue, event_wait=timedelta(seconds=30)):
         self.event_queue = event_queue
         self.last_triggered = None
         self.event_wait = event_wait # Dont trigger until this much time as passed since last notify
